@@ -1,0 +1,1000 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>MRSM Routes Map (Clickable blocks + dotted journey)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    #map { height: 100%; }
+
+    .panel {
+      position: absolute; z-index: 999; left: 12px; top: 12px;
+      background: rgba(255,255,255,0.97);
+      padding: 12px; border-radius: 16px;
+      box-shadow: 0 6px 22px rgba(0,0,0,.18);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      width: 420px;
+      max-width: calc(100vw - 24px);
+      max-height: 78vh;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 10px;
+    }
+    .panel h1 { font-size: 14px; margin: 0; }
+    .note { color: #555; font-size: 12.5px; line-height: 1.35; }
+    .row { display:flex; gap:8px; align-items:center; }
+    input[type="search"] {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,.12);
+      outline: none;
+      font-size: 13px;
+    }
+    .list {
+      overflow: auto;
+      border: 1px solid rgba(0,0,0,.10);
+      border-radius: 14px;
+      padding: 8px;
+      background: rgba(255,255,255,0.9);
+    }
+    .item {
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 8px;
+      border-radius: 12px;
+    }
+    .item:hover { background: rgba(0,0,0,.04); }
+    .left {
+      display:flex; align-items:center; gap:10px;
+      min-width: 0;
+    }
+    .swatch {
+      width: 14px; height: 14px; border-radius: 4px; flex: 0 0 auto;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.10);
+    }
+    .label {
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btn {
+      border: 1px solid rgba(0,0,0,.14);
+      background: white;
+      padding: 7px 10px;
+      border-radius: 12px;
+      font-size: 12.5px;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+    .btn:hover { background: rgba(0,0,0,.04); }
+    .key {
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 10px;
+      padding-top: 6px;
+    }
+    .key-item { display:flex; gap:8px; align-items:center; font-size: 12.5px; }
+    .block-label { background: transparent; border: none; }
+    @media (max-width: 520px) {
+      .panel { width: auto; }
+      .key { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="panel">
+    <h1>MRSM routes — colored blocks + dotted whole journey</h1>
+    <div class="note">
+      • Markers + line in the same block share the <b>same color</b>.<br/>
+      • Click “Zoom” to jump to that block route.<br/>
+      • Layer control (top-right) toggles: whole journey / blocks / weekly lines.
+    </div>
+
+    <div class="row">
+      <input id="search" type="search" placeholder="Search block (e.g., 3/2, 30/3, Bentong, Johor)…" />
+    </div>
+
+    <div class="list" id="list"></div>
+
+    <div>
+      <div class="note"><b>Quick color key (first 10)</b></div>
+      <div class="key">
+        <div class='key-item'><span class='swatch' style='background:hsl(196,70%,45%)'></span><span><b>#1</b> 3/2–4/2/2026</span></div>
+<div class='key-item'><span class='swatch' style='background:hsl(11,70%,45%)'></span><span><b>#2</b> 5/2–6/2/2026</span></div>
+<div class='key-item'><span class='swatch' style='background:hsl(348,70%,45%)'></span><span><b>#3</b> 9/2–10/2/2026</span></div>
+<div class='key-item'><span class='swatch' style='background:hsl(178,70%,45%)'></span><span><b>#4</b> 11/2–12/2/2026</span></div>
+<div class='key-item'><span class='swatch' style='background:hsl(131,70%,45%)'></span><span><b>#5</b> 22/2–23/2/2026</span></div>
+<div class='key-item'><span class='swatch' style='background:hsl(320,70%,45%)'></span><span><b>#6</b> 24/2–25/2/2026</span></div>
+<div class='key-item'><span class='swatch' style='background:hsl(249,70%,45%)'></span><span><b>#7</b> 1/3–2/3/2026</span></div>
+<div class='key-item'><span class='swatch' style='background:hsl(193,70%,45%)'></span><span><b>#8</b> 3/3–4/3/2026</span></div>
+<div class='key-item'><span class='swatch' style='background:hsl(256,70%,45%)'></span><span><b>#9</b> 5/3–6/3/2026</span></div>
+<div class='key-item'><span class='swatch' style='background:hsl(48,70%,45%)'></span><span><b>#10</b> 9/3–10/3/2026</span></div>
+      </div>
+      <div class='note' style='margin-top:6px;'>+ 10 more blocks (use the list or layer control)</div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <script>
+    const map = L.map('map');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Whole journey (dotted, ON)
+    const masterRoute = L.featureGroup().addTo(map);
+    L.polyline([[3.560105, 101.65831], [3.9508759, 101.3566885], [3.983333, 100.783333], [3.6746, 100.987], [4.166944, 100.95], [4.476689, 100.9097489], [4.76667, 100.933], [4.854099, 100.7375749], [5.98467, 100.45816], [6.335638, 100.372322], [6.429708, 100.269844], [6.265, 100.2], [5.724557, 100.3688341], [5.664394, 100.901578], [5.517235, 100.431487], [5.38945, 100.563431], [5.353121, 100.220156], [5.12671, 100.49316], [2.933333, 102.083333], [2.962516, 102.383761], [2.526708, 102.61126], [2.38, 102.208], [2.313, 102.303], [2.306, 102.428], [3.516667, 101.916667], [3.264675, 102.4458548], [4.18433, 102.0542321], [3.8077, 103.326], [3.500721, 103.3901212], [3.087465, 103.0586051], [5.069146, 102.997071], [5.311737, 103.119912], [5.820089, 102.537666], [5.820089, 102.537666], [4.756459, 103.3996831], [2.039272, 102.569092], [1.849442, 102.928834], [1.485561, 103.387856], [1.4655, 103.758], [2.430917, 103.836113]], {
+      weight: 4,
+      opacity: 0.55,
+      dashArray: '10 10'
+    }).addTo(masterRoute);
+
+    // Markers
+    const markers = L.featureGroup().addTo(map);
+    
+          L.circleMarker([3.560105, 101.65831], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(196,70%,45%)",
+            fillColor: "hsl(196,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Kuala Kubu Bharu<br><b>2026-02-03</b><br>Kuala Kubu Bharu, Selangor<br><span style='color:hsl(196,70%,45%)'><b>Block:</b> #1 (3/2\u20134/2/2026)</span>");
+        
+          L.circleMarker([3.9508759, 101.3566885], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(196,70%,45%)",
+            fillColor: "hsl(196,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM FELDA Trolak<br><b>2026-02-04</b><br>Felda Trolak Utara, Perak<br><span style='color:hsl(196,70%,45%)'><b>Block:</b> #1 (3/2\u20134/2/2026)</span>");
+        
+          L.circleMarker([3.983333, 100.783333], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(11,70%,45%)",
+            fillColor: "hsl(11,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Bagan Datuk<br><b>2026-02-05</b><br>Bagan Datuk, Perak<br><span style='color:hsl(11,70%,45%)'><b>Block:</b> #2 (5/2\u20136/2/2026)</span>");
+        
+          L.circleMarker([3.6746, 100.987], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(11,70%,45%)",
+            fillColor: "hsl(11,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Sungai Besar<br><b>2026-02-06</b><br>Sungai Besar, Selangor<br><span style='color:hsl(11,70%,45%)'><b>Block:</b> #2 (5/2\u20136/2/2026)</span>");
+        
+          L.circleMarker([4.166944, 100.95], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(348,70%,45%)",
+            fillColor: "hsl(348,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Pasir Salak<br><b>2026-02-09</b><br>Pasir Salak, Perak<br><span style='color:hsl(348,70%,45%)'><b>Block:</b> #3 (9/2\u201310/2/2026)</span>");
+        
+          L.circleMarker([4.476689, 100.9097489], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(348,70%,45%)",
+            fillColor: "hsl(348,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Parit<br><b>2026-02-10</b><br>Parit, Perak<br><span style='color:hsl(348,70%,45%)'><b>Block:</b> #3 (9/2\u201310/2/2026)</span>");
+        
+          L.circleMarker([4.76667, 100.933], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(178,70%,45%)",
+            fillColor: "hsl(178,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Sultan Azlan Shah<br><b>2026-02-11</b><br>Kuala Kangsar, Perak<br><span style='color:hsl(178,70%,45%)'><b>Block:</b> #4 (11/2\u201312/2/2026)</span>");
+        
+          L.circleMarker([4.854099, 100.7375749], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(178,70%,45%)",
+            fillColor: "hsl(178,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Taiping<br><b>2026-02-12</b><br>Taiping, Perak<br><span style='color:hsl(178,70%,45%)'><b>Block:</b> #4 (11/2\u201312/2/2026)</span>");
+        
+          L.circleMarker([5.98467, 100.45816], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(131,70%,45%)",
+            fillColor: "hsl(131,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Pendang<br><b>2026-02-22</b><br>Pendang, Kedah<br><span style='color:hsl(131,70%,45%)'><b>Block:</b> #5 (22/2\u201323/2/2026)</span>");
+        
+          L.circleMarker([6.335638, 100.372322], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(131,70%,45%)",
+            fillColor: "hsl(131,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Kubang Pasu<br><b>2026-02-23</b><br>Kubang Pasu, Kedah<br><span style='color:hsl(131,70%,45%)'><b>Block:</b> #5 (22/2\u201323/2/2026)</span>");
+        
+          L.circleMarker([6.429708, 100.269844], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(320,70%,45%)",
+            fillColor: "hsl(320,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Arau<br><b>2026-02-24</b><br>Arau, Perlis<br><span style='color:hsl(320,70%,45%)'><b>Block:</b> #6 (24/2\u201325/2/2026)</span>");
+        
+          L.circleMarker([6.265, 100.2], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(320,70%,45%)",
+            fillColor: "hsl(320,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Beseri<br><b>2026-02-25</b><br>Beseri, Perlis<br><span style='color:hsl(320,70%,45%)'><b>Block:</b> #6 (24/2\u201325/2/2026)</span>");
+        
+          L.circleMarker([5.724557, 100.3688341], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(249,70%,45%)",
+            fillColor: "hsl(249,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Merbok<br><b>2026-03-01</b><br>Merbok, Kedah<br><span style='color:hsl(249,70%,45%)'><b>Block:</b> #7 (1/3\u20132/3/2026)</span>");
+        
+          L.circleMarker([5.664394, 100.901578], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(249,70%,45%)",
+            fillColor: "hsl(249,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Baling<br><b>2026-03-02</b><br>Baling, Kedah<br><span style='color:hsl(249,70%,45%)'><b>Block:</b> #7 (1/3\u20132/3/2026)</span>");
+        
+          L.circleMarker([5.517235, 100.431487], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(193,70%,45%)",
+            fillColor: "hsl(193,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Tun Abdullah Ahmad Badawi<br><b>2026-03-03</b><br>Kepala Batas, Pulau Pinang<br><span style='color:hsl(193,70%,45%)'><b>Block:</b> #8 (3/3\u20134/3/2026)</span>");
+        
+          L.circleMarker([5.38945, 100.563431], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(193,70%,45%)",
+            fillColor: "hsl(193,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM PDRM Kulim<br><b>2026-03-04</b><br>Kulim, Kedah<br><span style='color:hsl(193,70%,45%)'><b>Block:</b> #8 (3/3\u20134/3/2026)</span>");
+        
+          L.circleMarker([5.353121, 100.220156], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(256,70%,45%)",
+            fillColor: "hsl(256,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Balik Pulau<br><b>2026-03-05</b><br>Balik Pulau, Pulau Pinang<br><span style='color:hsl(256,70%,45%)'><b>Block:</b> #9 (5/3\u20136/3/2026)</span>");
+        
+          L.circleMarker([5.12671, 100.49316], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(256,70%,45%)",
+            fillColor: "hsl(256,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Transkrian<br><b>2026-03-06</b><br>Parit Buntar, Perak (Transkrian/Parit Buntar area)<br><span style='color:hsl(256,70%,45%)'><b>Block:</b> #9 (5/3\u20136/3/2026)</span>");
+        
+          L.circleMarker([2.933333, 102.083333], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(48,70%,45%)",
+            fillColor: "hsl(48,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Kuala Klawang<br><b>2026-03-09</b><br>Kuala Klawang, Negeri Sembilan<br><span style='color:hsl(48,70%,45%)'><b>Block:</b> #10 (9/3\u201310/3/2026)</span>");
+        
+          L.circleMarker([2.962516, 102.383761], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(48,70%,45%)",
+            fillColor: "hsl(48,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Serting<br><b>2026-03-10</b><br>Serting, Negeri Sembilan<br><span style='color:hsl(48,70%,45%)'><b>Block:</b> #10 (9/3\u201310/3/2026)</span>");
+        
+          L.circleMarker([2.526708, 102.61126], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(281,70%,45%)",
+            fillColor: "hsl(281,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Gemencheh<br><b>2026-03-11</b><br>Gemencheh, Negeri Sembilan<br><span style='color:hsl(281,70%,45%)'><b>Block:</b> #11 (11/3\u201312/3/2026)</span>");
+        
+          L.circleMarker([2.38, 102.208], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(281,70%,45%)",
+            fillColor: "hsl(281,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Alor Gajah<br><b>2026-03-12</b><br>Alor Gajah, Melaka<br><span style='color:hsl(281,70%,45%)'><b>Block:</b> #11 (11/3\u201312/3/2026)</span>");
+        
+          L.circleMarker([2.313, 102.303], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(39,70%,45%)",
+            fillColor: "hsl(39,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Terendak<br><b>2026-03-13</b><br>Terendak, Melaka<br><span style='color:hsl(39,70%,45%)'><b>Block:</b> #12 (13/3\u201314/3/2026)</span>");
+        
+          L.circleMarker([2.306, 102.428], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(39,70%,45%)",
+            fillColor: "hsl(39,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Tun Ghafar Baba<br><b>2026-03-14</b><br>Jasin, Melaka<br><span style='color:hsl(39,70%,45%)'><b>Block:</b> #12 (13/3\u201314/3/2026)</span>");
+        
+          L.circleMarker([3.516667, 101.916667], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(161,70%,45%)",
+            fillColor: "hsl(161,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Bentong<br><b>2026-03-30</b><br>Bentong, Pahang<br><span style='color:hsl(161,70%,45%)'><b>Block:</b> #13 (30/3\u201331/3/2026)</span>");
+        
+          L.circleMarker([3.264675, 102.4458548], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(161,70%,45%)",
+            fillColor: "hsl(161,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM ATM Bera<br><b>2026-03-31</b><br>Bera (Bandar Bera), Pahang<br><span style='color:hsl(161,70%,45%)'><b>Block:</b> #13 (30/3\u201331/3/2026)</span>");
+        
+          L.circleMarker([4.18433, 102.0542321], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(306,70%,45%)",
+            fillColor: "hsl(306,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Tun Ghazali Shafie<br><b>2026-04-01</b><br>Kuala Lipis, Pahang<br><span style='color:hsl(306,70%,45%)'><b>Block:</b> #14 (1/4\u20132/4/2026)</span>");
+        
+          L.circleMarker([3.8077, 103.326], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(306,70%,45%)",
+            fillColor: "hsl(306,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Kuantan<br><b>2026-04-02</b><br>Kuantan, Pahang<br><span style='color:hsl(306,70%,45%)'><b>Block:</b> #14 (1/4\u20132/4/2026)</span>");
+        
+          L.circleMarker([3.500721, 103.3901212], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(3,70%,45%)",
+            fillColor: "hsl(3,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Tun Abdul Razak<br><b>2026-04-03</b><br>Pekan, Pahang<br><span style='color:hsl(3,70%,45%)'><b>Block:</b> #15 (3/4\u20134/4/2026)</span>");
+        
+          L.circleMarker([3.087465, 103.0586051], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(3,70%,45%)",
+            fillColor: "hsl(3,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Muadzam Shah<br><b>2026-04-04</b><br>Muadzam Shah, Pahang<br><span style='color:hsl(3,70%,45%)'><b>Block:</b> #15 (3/4\u20134/4/2026)</span>");
+        
+          L.circleMarker([5.069146, 102.997071], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(172,70%,45%)",
+            fillColor: "hsl(172,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Kuala Berang<br><b>2026-04-05</b><br>Kuala Berang, Terengganu<br><span style='color:hsl(172,70%,45%)'><b>Block:</b> #16 (5/4\u20136/4/2026)</span>");
+        
+          L.circleMarker([5.311737, 103.119912], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(172,70%,45%)",
+            fillColor: "hsl(172,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Kuala Terengganu<br><b>2026-04-06</b><br>Kuala Terengganu, Terengganu<br><span style='color:hsl(172,70%,45%)'><b>Block:</b> #16 (5/4\u20136/4/2026)</span>");
+        
+          L.circleMarker([5.820089, 102.537666], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(170,70%,45%)",
+            fillColor: "hsl(170,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Besut<br><b>2026-04-07</b><br>Kuala Besut (Besut), Terengganu<br><span style='color:hsl(170,70%,45%)'><b>Block:</b> #17 (7/4\u20138/4/2026)</span>");
+        
+          L.circleMarker([5.820089, 102.537666], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(170,70%,45%)",
+            fillColor: "hsl(170,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Kota Putra<br><b>2026-04-08</b><br>Besut (Kota Putra area), Terengganu<br><span style='color:hsl(170,70%,45%)'><b>Block:</b> #17 (7/4\u20138/4/2026)</span>");
+        
+          L.circleMarker([4.756459, 103.3996831], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(255,70%,45%)",
+            fillColor: "hsl(255,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Dungun<br><b>2026-04-09</b><br>Dungun, Terengganu<br><span style='color:hsl(255,70%,45%)'><b>Block:</b> #18 (9/4\u201313/4/2026)</span>");
+        
+          L.circleMarker([2.039272, 102.569092], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(255,70%,45%)",
+            fillColor: "hsl(255,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Muar<br><b>2026-04-13</b><br>Muar, Johor<br><span style='color:hsl(255,70%,45%)'><b>Block:</b> #18 (9/4\u201313/4/2026)</span>");
+        
+          L.circleMarker([1.849442, 102.928834], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(307,70%,45%)",
+            fillColor: "hsl(307,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Batu Pahat<br><b>2026-04-14</b><br>Batu Pahat, Johor<br><span style='color:hsl(307,70%,45%)'><b>Block:</b> #19 (14/4\u201315/4/2026)</span>");
+        
+          L.circleMarker([1.485561, 103.387856], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(307,70%,45%)",
+            fillColor: "hsl(307,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Tun Dr Ismail<br><b>2026-04-15</b><br>Pontian, Johor<br><span style='color:hsl(307,70%,45%)'><b>Block:</b> #19 (14/4\u201315/4/2026)</span>");
+        
+          L.circleMarker([1.4655, 103.758], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(329,70%,45%)",
+            fillColor: "hsl(329,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Johor Bahru<br><b>2026-04-16</b><br>Johor Bahru, Johor<br><span style='color:hsl(329,70%,45%)'><b>Block:</b> #20 (16/4\u201317/4/2026)</span>");
+        
+          L.circleMarker([2.430917, 103.836113], {
+            radius: 7,
+            weight: 2,
+            color: "hsl(329,70%,45%)",
+            fillColor: "hsl(329,70%,45%)",
+            fillOpacity: 0.85
+          }).addTo(markers)
+          .bindPopup("MRSM Mersing<br><b>2026-04-17</b><br>Mersing, Johor<br><span style='color:hsl(329,70%,45%)'><b>Block:</b> #20 (16/4\u201317/4/2026)</span>");
+        
+
+    // Blocks (colored, ON)
+    const blockRoutes = L.featureGroup().addTo(map);
+    
+      const block_1 = L.featureGroup();
+      
+          const line_1 = L.polyline([[3.560105, 101.65831], [3.9508759, 101.3566885]], {
+            weight: 6, opacity: 0.9, color: "hsl(196,70%,45%)"
+          }).addTo(block_1);
+        
+      
+          L.marker([3.75549045,101.50749925], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(196,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#1</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_1).bindTooltip("Block #1: 3/2\u20134/2/2026", {sticky:true});
+        
+    
+      const block_2 = L.featureGroup();
+      
+          const line_2 = L.polyline([[3.983333, 100.783333], [3.6746, 100.987]], {
+            weight: 6, opacity: 0.9, color: "hsl(11,70%,45%)"
+          }).addTo(block_2);
+        
+      
+          L.marker([3.8289665,100.8851665], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(11,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#2</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_2).bindTooltip("Block #2: 5/2\u20136/2/2026", {sticky:true});
+        
+    
+      const block_3 = L.featureGroup();
+      
+          const line_3 = L.polyline([[4.166944, 100.95], [4.476689, 100.9097489]], {
+            weight: 6, opacity: 0.9, color: "hsl(348,70%,45%)"
+          }).addTo(block_3);
+        
+      
+          L.marker([4.321816500000001,100.92987445], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(348,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#3</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_3).bindTooltip("Block #3: 9/2\u201310/2/2026", {sticky:true});
+        
+    
+      const block_4 = L.featureGroup();
+      
+          const line_4 = L.polyline([[4.76667, 100.933], [4.854099, 100.7375749]], {
+            weight: 6, opacity: 0.9, color: "hsl(178,70%,45%)"
+          }).addTo(block_4);
+        
+      
+          L.marker([4.8103845,100.83528745000001], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(178,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#4</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_4).bindTooltip("Block #4: 11/2\u201312/2/2026", {sticky:true});
+        
+    
+      const block_5 = L.featureGroup();
+      
+          const line_5 = L.polyline([[5.98467, 100.45816], [6.335638, 100.372322]], {
+            weight: 6, opacity: 0.9, color: "hsl(131,70%,45%)"
+          }).addTo(block_5);
+        
+      
+          L.marker([6.160154,100.41524100000001], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(131,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#5</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_5).bindTooltip("Block #5: 22/2\u201323/2/2026", {sticky:true});
+        
+    
+      const block_6 = L.featureGroup();
+      
+          const line_6 = L.polyline([[6.429708, 100.269844], [6.265, 100.2]], {
+            weight: 6, opacity: 0.9, color: "hsl(320,70%,45%)"
+          }).addTo(block_6);
+        
+      
+          L.marker([6.347353999999999,100.23492200000001], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(320,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#6</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_6).bindTooltip("Block #6: 24/2\u201325/2/2026", {sticky:true});
+        
+    
+      const block_7 = L.featureGroup();
+      
+          const line_7 = L.polyline([[5.724557, 100.3688341], [5.664394, 100.901578]], {
+            weight: 6, opacity: 0.9, color: "hsl(249,70%,45%)"
+          }).addTo(block_7);
+        
+      
+          L.marker([5.694475499999999,100.63520605], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(249,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#7</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_7).bindTooltip("Block #7: 1/3\u20132/3/2026", {sticky:true});
+        
+    
+      const block_8 = L.featureGroup();
+      
+          const line_8 = L.polyline([[5.517235, 100.431487], [5.38945, 100.563431]], {
+            weight: 6, opacity: 0.9, color: "hsl(193,70%,45%)"
+          }).addTo(block_8);
+        
+      
+          L.marker([5.4533425,100.49745899999999], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(193,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#8</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_8).bindTooltip("Block #8: 3/3\u20134/3/2026", {sticky:true});
+        
+    
+      const block_9 = L.featureGroup();
+      
+          const line_9 = L.polyline([[5.353121, 100.220156], [5.12671, 100.49316]], {
+            weight: 6, opacity: 0.9, color: "hsl(256,70%,45%)"
+          }).addTo(block_9);
+        
+      
+          L.marker([5.2399155,100.35665800000001], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(256,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#9</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_9).bindTooltip("Block #9: 5/3\u20136/3/2026", {sticky:true});
+        
+    
+      const block_10 = L.featureGroup();
+      
+          const line_10 = L.polyline([[2.933333, 102.083333], [2.962516, 102.383761]], {
+            weight: 6, opacity: 0.9, color: "hsl(48,70%,45%)"
+          }).addTo(block_10);
+        
+      
+          L.marker([2.9479245,102.233547], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(48,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#10</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_10).bindTooltip("Block #10: 9/3\u201310/3/2026", {sticky:true});
+        
+    
+      const block_11 = L.featureGroup();
+      
+          const line_11 = L.polyline([[2.526708, 102.61126], [2.38, 102.208]], {
+            weight: 6, opacity: 0.9, color: "hsl(281,70%,45%)"
+          }).addTo(block_11);
+        
+      
+          L.marker([2.453354,102.40962999999999], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(281,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#11</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_11).bindTooltip("Block #11: 11/3\u201312/3/2026", {sticky:true});
+        
+    
+      const block_12 = L.featureGroup();
+      
+          const line_12 = L.polyline([[2.313, 102.303], [2.306, 102.428]], {
+            weight: 6, opacity: 0.9, color: "hsl(39,70%,45%)"
+          }).addTo(block_12);
+        
+      
+          L.marker([2.3095,102.3655], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(39,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#12</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_12).bindTooltip("Block #12: 13/3\u201314/3/2026", {sticky:true});
+        
+    
+      const block_13 = L.featureGroup();
+      
+          const line_13 = L.polyline([[3.516667, 101.916667], [3.264675, 102.4458548]], {
+            weight: 6, opacity: 0.9, color: "hsl(161,70%,45%)"
+          }).addTo(block_13);
+        
+      
+          L.marker([3.390671,102.18126090000001], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(161,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#13</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_13).bindTooltip("Block #13: 30/3\u201331/3/2026", {sticky:true});
+        
+    
+      const block_14 = L.featureGroup();
+      
+          const line_14 = L.polyline([[4.18433, 102.0542321], [3.8077, 103.326]], {
+            weight: 6, opacity: 0.9, color: "hsl(306,70%,45%)"
+          }).addTo(block_14);
+        
+      
+          L.marker([3.996015,102.69011605], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(306,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#14</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_14).bindTooltip("Block #14: 1/4\u20132/4/2026", {sticky:true});
+        
+    
+      const block_15 = L.featureGroup();
+      
+          const line_15 = L.polyline([[3.500721, 103.3901212], [3.087465, 103.0586051]], {
+            weight: 6, opacity: 0.9, color: "hsl(3,70%,45%)"
+          }).addTo(block_15);
+        
+      
+          L.marker([3.294093,103.22436314999999], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(3,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#15</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_15).bindTooltip("Block #15: 3/4\u20134/4/2026", {sticky:true});
+        
+    
+      const block_16 = L.featureGroup();
+      
+          const line_16 = L.polyline([[5.069146, 102.997071], [5.311737, 103.119912]], {
+            weight: 6, opacity: 0.9, color: "hsl(172,70%,45%)"
+          }).addTo(block_16);
+        
+      
+          L.marker([5.1904415,103.0584915], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(172,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#16</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_16).bindTooltip("Block #16: 5/4\u20136/4/2026", {sticky:true});
+        
+    
+      const block_17 = L.featureGroup();
+      
+          const line_17 = L.polyline([[5.820089, 102.537666], [5.820089, 102.537666]], {
+            weight: 6, opacity: 0.9, color: "hsl(170,70%,45%)"
+          }).addTo(block_17);
+        
+      
+          L.marker([5.820089,102.537666], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(170,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#17</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_17).bindTooltip("Block #17: 7/4\u20138/4/2026", {sticky:true});
+        
+    
+      const block_18 = L.featureGroup();
+      
+          const line_18 = L.polyline([[4.756459, 103.3996831], [2.039272, 102.569092]], {
+            weight: 6, opacity: 0.9, color: "hsl(255,70%,45%)"
+          }).addTo(block_18);
+        
+      
+          L.marker([3.3978655,102.98438755000001], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(255,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#18</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_18).bindTooltip("Block #18: 9/4\u201313/4/2026", {sticky:true});
+        
+    
+      const block_19 = L.featureGroup();
+      
+          const line_19 = L.polyline([[1.849442, 102.928834], [1.485561, 103.387856]], {
+            weight: 6, opacity: 0.9, color: "hsl(307,70%,45%)"
+          }).addTo(block_19);
+        
+      
+          L.marker([1.6675015,103.158345], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(307,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#19</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_19).bindTooltip("Block #19: 14/4\u201315/4/2026", {sticky:true});
+        
+    
+      const block_20 = L.featureGroup();
+      
+          const line_20 = L.polyline([[1.4655, 103.758], [2.430917, 103.836113]], {
+            weight: 6, opacity: 0.9, color: "hsl(329,70%,45%)"
+          }).addTo(block_20);
+        
+      
+          L.marker([1.9482085,103.7970565], {
+            icon: L.divIcon({
+              className: 'block-label',
+              html: "<div style='background:hsl(329,70%,45%);color:white;border-radius:999px;padding:2px 8px;font-weight:700;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.25)'>#20</div>",
+              iconSize: [30, 18],
+              iconAnchor: [15, 9]
+            })
+          }).addTo(block_20).bindTooltip("Block #20: 16/4\u201317/4/2026", {sticky:true});
+        
+    
+    block_1.addTo(blockRoutes);block_2.addTo(blockRoutes);block_3.addTo(blockRoutes);block_4.addTo(blockRoutes);block_5.addTo(blockRoutes);block_6.addTo(blockRoutes);block_7.addTo(blockRoutes);block_8.addTo(blockRoutes);block_9.addTo(blockRoutes);block_10.addTo(blockRoutes);block_11.addTo(blockRoutes);block_12.addTo(blockRoutes);block_13.addTo(blockRoutes);block_14.addTo(blockRoutes);block_15.addTo(blockRoutes);block_16.addTo(blockRoutes);block_17.addTo(blockRoutes);block_18.addTo(blockRoutes);block_19.addTo(blockRoutes);block_20.addTo(blockRoutes);
+
+    // Weekly layers (toggle)
+    
+      const week_2026_W06 = L.featureGroup();
+      L.polyline([[3.560105, 101.65831], [3.9508759, 101.3566885], [3.983333, 100.783333], [3.6746, 100.987]], {
+        weight: 4,
+        opacity: 0.8,
+        color: 'hsl(106,60%,35%)'
+      }).addTo(week_2026_W06);
+    
+      const week_2026_W07 = L.featureGroup();
+      L.polyline([[4.166944, 100.95], [4.476689, 100.9097489], [4.76667, 100.933], [4.854099, 100.7375749]], {
+        weight: 4,
+        opacity: 0.8,
+        color: 'hsl(253,60%,35%)'
+      }).addTo(week_2026_W07);
+    
+      const week_2026_W08 = L.featureGroup();
+      L.polyline([[5.98467, 100.45816]], {
+        weight: 4,
+        opacity: 0.8,
+        color: 'hsl(54,60%,35%)'
+      }).addTo(week_2026_W08);
+    
+      const week_2026_W09 = L.featureGroup();
+      L.polyline([[6.335638, 100.372322], [6.429708, 100.269844], [6.265, 100.2], [5.724557, 100.3688341]], {
+        weight: 4,
+        opacity: 0.8,
+        color: 'hsl(10,60%,35%)'
+      }).addTo(week_2026_W09);
+    
+      const week_2026_W10 = L.featureGroup();
+      L.polyline([[5.664394, 100.901578], [5.517235, 100.431487], [5.38945, 100.563431], [5.353121, 100.220156], [5.12671, 100.49316]], {
+        weight: 4,
+        opacity: 0.8,
+        color: 'hsl(301,60%,35%)'
+      }).addTo(week_2026_W10);
+    
+      const week_2026_W11 = L.featureGroup();
+      L.polyline([[2.933333, 102.083333], [2.962516, 102.383761], [2.526708, 102.61126], [2.38, 102.208], [2.313, 102.303], [2.306, 102.428]], {
+        weight: 4,
+        opacity: 0.8,
+        color: 'hsl(218,60%,35%)'
+      }).addTo(week_2026_W11);
+    
+      const week_2026_W14 = L.featureGroup();
+      L.polyline([[3.516667, 101.916667], [3.264675, 102.4458548], [4.18433, 102.0542321], [3.8077, 103.326], [3.500721, 103.3901212], [3.087465, 103.0586051], [5.069146, 102.997071]], {
+        weight: 4,
+        opacity: 0.8,
+        color: 'hsl(339,60%,35%)'
+      }).addTo(week_2026_W14);
+    
+      const week_2026_W15 = L.featureGroup();
+      L.polyline([[5.311737, 103.119912], [5.820089, 102.537666], [5.820089, 102.537666], [4.756459, 103.3996831]], {
+        weight: 4,
+        opacity: 0.8,
+        color: 'hsl(260,60%,35%)'
+      }).addTo(week_2026_W15);
+    
+      const week_2026_W16 = L.featureGroup();
+      L.polyline([[2.039272, 102.569092], [1.849442, 102.928834], [1.485561, 103.387856], [1.4655, 103.758], [2.430917, 103.836113]], {
+        weight: 4,
+        opacity: 0.8,
+        color: 'hsl(285,60%,35%)'
+      }).addTo(week_2026_W16);
+    
+
+    const overlays = {
+  "Whole journey (dotted)": masterRoute,
+  "Blocks (colored pairs / ranges)": blockRoutes,
+  "2026-W06 (02 Feb\u201308 Feb 2026)": week_2026_W06,
+  "2026-W07 (09 Feb\u201315 Feb 2026)": week_2026_W07,
+  "2026-W08 (16 Feb\u201322 Feb 2026)": week_2026_W08,
+  "2026-W09 (23 Feb\u201301 Mar 2026)": week_2026_W09,
+  "2026-W10 (02 Mar\u201308 Mar 2026)": week_2026_W10,
+  "2026-W11 (09 Mar\u201315 Mar 2026)": week_2026_W11,
+  "2026-W14 (30 Mar\u201305 Apr 2026)": week_2026_W14,
+  "2026-W15 (06 Apr\u201312 Apr 2026)": week_2026_W15,
+  "2026-W16 (13 Apr\u201319 Apr 2026)": week_2026_W16
+};
+    L.control.layers(null, overlays, { collapsed: false }).addTo(map);
+
+    // Fit map
+    map.fitBounds(L.latLngBounds([[3.560105, 101.65831], [3.9508759, 101.3566885], [3.983333, 100.783333], [3.6746, 100.987], [4.166944, 100.95], [4.476689, 100.9097489], [4.76667, 100.933], [4.854099, 100.7375749], [5.98467, 100.45816], [6.335638, 100.372322], [6.429708, 100.269844], [6.265, 100.2], [5.724557, 100.3688341], [5.664394, 100.901578], [5.517235, 100.431487], [5.38945, 100.563431], [5.353121, 100.220156], [5.12671, 100.49316], [2.933333, 102.083333], [2.962516, 102.383761], [2.526708, 102.61126], [2.38, 102.208], [2.313, 102.303], [2.306, 102.428], [3.516667, 101.916667], [3.264675, 102.4458548], [4.18433, 102.0542321], [3.8077, 103.326], [3.500721, 103.3901212], [3.087465, 103.0586051], [5.069146, 102.997071], [5.311737, 103.119912], [5.820089, 102.537666], [5.820089, 102.537666], [4.756459, 103.3996831], [2.039272, 102.569092], [1.849442, 102.928834], [1.485561, 103.387856], [1.4655, 103.758], [2.430917, 103.836113]]).pad(0.12));
+
+    // Side panel list
+    const blockMeta = [{"id": 1, "label": "3/2\u20134/2/2026", "color": "hsl(196,70%,45%)", "layerVar": "block_1", "coords": [[3.560105, 101.65831], [3.9508759, 101.3566885]]}, {"id": 2, "label": "5/2\u20136/2/2026", "color": "hsl(11,70%,45%)", "layerVar": "block_2", "coords": [[3.983333, 100.783333], [3.6746, 100.987]]}, {"id": 3, "label": "9/2\u201310/2/2026", "color": "hsl(348,70%,45%)", "layerVar": "block_3", "coords": [[4.166944, 100.95], [4.476689, 100.9097489]]}, {"id": 4, "label": "11/2\u201312/2/2026", "color": "hsl(178,70%,45%)", "layerVar": "block_4", "coords": [[4.76667, 100.933], [4.854099, 100.7375749]]}, {"id": 5, "label": "22/2\u201323/2/2026", "color": "hsl(131,70%,45%)", "layerVar": "block_5", "coords": [[5.98467, 100.45816], [6.335638, 100.372322]]}, {"id": 6, "label": "24/2\u201325/2/2026", "color": "hsl(320,70%,45%)", "layerVar": "block_6", "coords": [[6.429708, 100.269844], [6.265, 100.2]]}, {"id": 7, "label": "1/3\u20132/3/2026", "color": "hsl(249,70%,45%)", "layerVar": "block_7", "coords": [[5.724557, 100.3688341], [5.664394, 100.901578]]}, {"id": 8, "label": "3/3\u20134/3/2026", "color": "hsl(193,70%,45%)", "layerVar": "block_8", "coords": [[5.517235, 100.431487], [5.38945, 100.563431]]}, {"id": 9, "label": "5/3\u20136/3/2026", "color": "hsl(256,70%,45%)", "layerVar": "block_9", "coords": [[5.353121, 100.220156], [5.12671, 100.49316]]}, {"id": 10, "label": "9/3\u201310/3/2026", "color": "hsl(48,70%,45%)", "layerVar": "block_10", "coords": [[2.933333, 102.083333], [2.962516, 102.383761]]}, {"id": 11, "label": "11/3\u201312/3/2026", "color": "hsl(281,70%,45%)", "layerVar": "block_11", "coords": [[2.526708, 102.61126], [2.38, 102.208]]}, {"id": 12, "label": "13/3\u201314/3/2026", "color": "hsl(39,70%,45%)", "layerVar": "block_12", "coords": [[2.313, 102.303], [2.306, 102.428]]}, {"id": 13, "label": "30/3\u201331/3/2026", "color": "hsl(161,70%,45%)", "layerVar": "block_13", "coords": [[3.516667, 101.916667], [3.264675, 102.4458548]]}, {"id": 14, "label": "1/4\u20132/4/2026", "color": "hsl(306,70%,45%)", "layerVar": "block_14", "coords": [[4.18433, 102.0542321], [3.8077, 103.326]]}, {"id": 15, "label": "3/4\u20134/4/2026", "color": "hsl(3,70%,45%)", "layerVar": "block_15", "coords": [[3.500721, 103.3901212], [3.087465, 103.0586051]]}, {"id": 16, "label": "5/4\u20136/4/2026", "color": "hsl(172,70%,45%)", "layerVar": "block_16", "coords": [[5.069146, 102.997071], [5.311737, 103.119912]]}, {"id": 17, "label": "7/4\u20138/4/2026", "color": "hsl(170,70%,45%)", "layerVar": "block_17", "coords": [[5.820089, 102.537666], [5.820089, 102.537666]]}, {"id": 18, "label": "9/4\u201313/4/2026", "color": "hsl(255,70%,45%)", "layerVar": "block_18", "coords": [[4.756459, 103.3996831], [2.039272, 102.569092]]}, {"id": 19, "label": "14/4\u201315/4/2026", "color": "hsl(307,70%,45%)", "layerVar": "block_19", "coords": [[1.849442, 102.928834], [1.485561, 103.387856]]}, {"id": 20, "label": "16/4\u201317/4/2026", "color": "hsl(329,70%,45%)", "layerVar": "block_20", "coords": [[1.4655, 103.758], [2.430917, 103.836113]]}];
+
+    // Build searchable text per block (include MRSM names too)
+    const blockTextIndex = blockMeta.map(b => {
+      const layer = window[b.layerVar];
+      let names = '';
+      try {
+        // Collect popups from markers by matching coords
+        names = '';
+      } catch(e) {}
+      return {
+        ...b,
+        searchText: (`#${b.id} ${b.label}`).toLowerCase()
+      };
+    });
+
+    function zoomToBlock(b) {
+      const coords = b.coords;
+      if (!coords || coords.length === 0) return;
+      const bounds = L.latLngBounds(coords);
+      map.fitBounds(bounds.pad(0.35));
+    }
+
+    function renderList(filter='') {
+      const q = (filter || '').trim().toLowerCase();
+      const el = document.getElementById('list');
+      el.innerHTML = '';
+
+      const items = blockTextIndex.filter(b => {
+        if (!q) return true;
+        // allow searching by date fragments like "3/2" or "30/3"
+        return b.searchText.includes(q) || b.label.toLowerCase().includes(q);
+      });
+
+      items.forEach(b => {
+        const row = document.createElement('div');
+        row.className = 'item';
+        row.innerHTML = `
+          <div class="left">
+            <span class="swatch" style="background:${b.color}"></span>
+            <div class="label"><b>#${b.id}</b> ${b.label}</div>
+          </div>
+          <button class="btn">Zoom</button>
+        `;
+        row.querySelector('button').addEventListener('click', () => zoomToBlock(b));
+        el.appendChild(row);
+      });
+
+      if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'note';
+        empty.style.padding = '10px 6px';
+        empty.textContent = 'No matching blocks. Try searching by date like “30/3” or “13/4”.';
+        el.appendChild(empty);
+      }
+    }
+
+    renderList('');
+    document.getElementById('search').addEventListener('input', (e) => renderList(e.target.value));
+  </script>
+</body>
+</html>
